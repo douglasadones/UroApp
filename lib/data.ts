@@ -44,3 +44,13 @@ export const ipssOptions = [
   { label: "Mais que a metade das vezes", value: 4 },
   { label: "Quase sempre", value: 5 },
 ]
+
+// Opções específicas para a pergunta de noctúria (q7)
+export const nocturiaOptions = [
+  { label: "Nenhuma", value: 0 },
+  { label: "1 vez", value: 1 },
+  { label: "2 vezes", value: 2 },
+  { label: "3 vezes", value: 3 },
+  { label: "4 vezes", value: 4 },
+  { label: "5 vezes", value: 5 },
+]

@@ -27,8 +27,17 @@ export default function ExamsScreen({ patientData, onUpdatePatientData, onComple
   const psa = Number(patientData.psa)
   const psaAlert = (age < 60 && psa > 2.5) || (age >= 60 && psa > 4.0)
 
+  // Verificar se todos os campos obrigatórios estão preenchidos
+  const canProceed = patientData.age && patientData.psa && patientData.prostateVolume
+
+  const handleContinue = () => {
+    if (canProceed) {
+      onComplete()
+    }
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4">
       <div className="bg-white rounded-lg shadow-md p-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-4">Informe a idade do paciente</h3>
         <input
@@ -38,6 +47,7 @@ export default function ExamsScreen({ patientData, onUpdatePatientData, onComple
           type="number"
           placeholder="Digite a idade"
           className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          required
         />
       </div>
 
@@ -45,8 +55,8 @@ export default function ExamsScreen({ patientData, onUpdatePatientData, onComple
         <h3 className="text-lg font-semibold text-gray-800 mb-2">Prostatic Score Symptom</h3>
         <h4 className="text-xl font-bold text-gray-800 mb-4">IPSS</h4>
         <div className="bg-gray-100 p-3 rounded-lg mb-4">
-          <span className="text-2xl font-bold">{patientData.ipssScore || "N/A"}</span>
-          <p className="text-sm text-gray-600 mt-1">Não é possível editar este valor</p>
+          <span className="text-2xl font-bold">{patientData.ipssScore}</span>
+          <p className="text-sm text-gray-600 mt-1">Pontuação calculada automaticamente</p>
         </div>
       </div>
 
@@ -61,6 +71,7 @@ export default function ExamsScreen({ patientData, onUpdatePatientData, onComple
           step="0.1"
           placeholder="Digite o PSA"
           className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent mb-4"
+          required
         />
 
         {psaAlert && (
@@ -84,14 +95,18 @@ export default function ExamsScreen({ patientData, onUpdatePatientData, onComple
           type="number"
           placeholder="Digite o volume (g)"
           className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          required
         />
       </div>
 
       <button
-        onClick={onComplete}
-        className="w-full bg-orange-500 text-white py-3 px-6 rounded-full font-semibold hover:bg-orange-600 transition-colors"
+        onClick={handleContinue}
+        disabled={!canProceed}
+        className={`w-full py-3 px-6 rounded-full font-semibold transition-colors ${
+          canProceed ? "bg-orange-500 text-white hover:bg-orange-600" : "bg-gray-300 text-gray-500 cursor-not-allowed"
+        }`}
       >
-        Continuar
+        {canProceed ? "Continuar" : "Preencha todos os campos"}
       </button>
     </div>
   )

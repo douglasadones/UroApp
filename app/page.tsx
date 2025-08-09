@@ -1,14 +1,13 @@
 "use client"
 
-import ExamsScreen from "@/components/exams-screen"
-import GuidanceScreen from "@/components/guidance-screen"
-import HomeScreen from "@/components/home-screen"; // Novo componente para a tela principal de navegação
-import IpssScreen from "@/components/ipss-screen"
+import { useState, useCallback } from "react"
+import { ArrowLeft, Share } from "lucide-react"
+import WelcomeScreen from "@/components/welcome-screen"
 import MissingExamsScreen from "@/components/missing-exams-screen"
 import SurgeryIndicationsScreen from "@/components/surgery-indications-screen"
-import WelcomeScreen from "@/components/welcome-screen"
-import { ArrowLeft, Share } from "lucide-react"
-import { useCallback, useState } from "react"
+import ExamsScreen from "@/components/exams-screen"
+import IpssScreen from "@/components/ipss-screen"
+import GuidanceScreen from "@/components/guidance-screen"
 
 export default function HPBApp() {
   const [currentScreen, setCurrentScreen] = useState("welcome")
@@ -29,7 +28,6 @@ export default function HPBApp() {
     const titles = {
       welcome: "Bem vindo ao UroHPB",
       "missing-exams": "Exames Necessários",
-      home: "HPB Assistant",
       "surgery-indications": "Indicações de cirurgia",
       exams: "Exames",
       ipss: "IPSS",
@@ -44,9 +42,8 @@ export default function HPBApp() {
       setScreenHistory((prev) => prev.slice(0, -1))
       setCurrentScreen(previousScreen)
     } else {
-      // Se não há histórico, e não estamos na tela de boas-vindas, volta para a home
       if (currentScreen !== "welcome") {
-        setCurrentScreen("home")
+        setCurrentScreen("welcome")
       }
     }
   }, [screenHistory, currentScreen])
@@ -76,7 +73,7 @@ export default function HPBApp() {
       psaAlertTriggered: false,
     })
     setScreenHistory([])
-    setCurrentScreen("welcome") // Volta para a tela de boas-vindas no reset
+    setCurrentScreen("welcome")
   }, [])
 
   return (
@@ -87,7 +84,7 @@ export default function HPBApp() {
           onClick={goBack}
           className="flex items-center p-2 -ml-2"
           aria-label="Voltar"
-          disabled={currentScreen === "welcome" || (currentScreen === "home" && screenHistory.length === 0)}
+          disabled={currentScreen === "welcome" || screenHistory.length === 0}
         >
           <ArrowLeft className="w-6 h-6" />
         </button>
@@ -98,24 +95,15 @@ export default function HPBApp() {
       </header>
 
       {/* Screen Content */}
-      <main className="p-4">
+      <main className="flex-1">
         {currentScreen === "welcome" && (
           <WelcomeScreen
-            onStartDiagnostic={() => navigateTo("home")}
+            onStartDiagnostic={() => navigateTo("surgery-indications")}
             onMissingExams={() => navigateTo("missing-exams")}
           />
         )}
 
         {currentScreen === "missing-exams" && <MissingExamsScreen onGoBack={() => navigateTo("welcome")} />}
-
-        {currentScreen === "home" && (
-          <HomeScreen
-            onNavigateToObjectives={() => navigateTo("objectives")}
-            onNavigateToSurgery={() => navigateTo("surgery-indications")}
-            onNavigateToExams={() => navigateTo("exams")}
-            onNavigateToIpss={() => navigateTo("ipss")}
-          />
-        )}
 
         {currentScreen === "surgery-indications" && (
           <SurgeryIndicationsScreen
@@ -124,9 +112,17 @@ export default function HPBApp() {
               if (hasIndication) {
                 navigateTo("guidance") // Encaminhar direto se houver indicação cirúrgica
               } else {
-                navigateTo("exams")
+                navigateTo("ipss") // Vai direto para IPSS se não houver indicação
               }
             }}
+          />
+        )}
+
+        {currentScreen === "ipss" && (
+          <IpssScreen
+            patientData={patientData}
+            onUpdatePatientData={updatePatientData}
+            onComplete={() => navigateTo("exams")} // Após IPSS vai para Exames
           />
         )}
 
@@ -142,19 +138,9 @@ export default function HPBApp() {
 
               if (psaAlert) {
                 updatePatientData({ psaAlertTriggered: true })
-                navigateTo("guidance") // Encaminhar direto se houver alerta de PSA
-              } else {
-                navigateTo("ipss")
               }
+              navigateTo("guidance") // Sempre vai para guidance após exames
             }}
-          />
-        )}
-
-        {currentScreen === "ipss" && (
-          <IpssScreen
-            patientData={patientData}
-            onUpdatePatientData={updatePatientData}
-            onComplete={() => navigateTo("guidance")}
           />
         )}
 
