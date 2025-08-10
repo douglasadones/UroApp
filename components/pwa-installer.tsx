@@ -11,6 +11,7 @@ interface BeforeInstallPromptEvent extends Event {
 export default function PWAInstaller() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [showInstallPrompt, setShowInstallPrompt] = useState(false)
+  const [isDismissed, setIsDismissed] = useState(false)
 
   useEffect(() => {
     // Register service worker
@@ -39,6 +40,11 @@ export default function PWAInstaller() {
       setShowInstallPrompt(false)
     }
 
+    // Mova a verificação do sessionStorage para dentro do useEffect
+    if (sessionStorage.getItem("pwa-install-dismissed")) {
+      setIsDismissed(true)
+    }
+
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt)
     }
@@ -62,12 +68,13 @@ export default function PWAInstaller() {
 
   const handleDismiss = () => {
     setShowInstallPrompt(false)
+    setIsDismissed(true)
     // Hide for this session
     sessionStorage.setItem("pwa-install-dismissed", "true")
   }
 
-  // Don't show if already dismissed in this session
-  if (sessionStorage.getItem("pwa-install-dismissed")) {
+  // Use o novo estado para controlar a renderização
+  if (isDismissed) {
     return null
   }
 
