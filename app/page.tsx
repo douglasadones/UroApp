@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useCallback, useEffect } from "react"
-import { ArrowLeft, Share } from "lucide-react"
+import { ArrowLeft, Share, Wifi, WifiOff } from "lucide-react"
 import WelcomeScreen from "@/components/welcome-screen"
 import MissingExamsScreen from "@/components/missing-exams-screen"
 import SurgeryIndicationsScreen from "@/components/surgery-indications-screen"
@@ -14,22 +14,50 @@ import { offlineStorage } from "@/lib/storage"
 export default function HPBApp() {
   const [currentScreen, setCurrentScreen] = useState("welcome")
   const [screenHistory, setScreenHistory] = useState([])
+  const [isOnline, setIsOnline] = useState(true)
   const [patientData, setPatientData] = useState({
     age: "",
     ipssScore: 0,
     psa: "",
     prostateVolume: "",
     ipssAnswers: {},
-    surgeryAnswers: [], // Para armazenar as respostas das indicações de cirurgia
-    hasSurgeryIndication: null, // true/false/null
+    surgeryAnswers: [],
+    hasSurgeryIndication: null,
     hasErectileDysfunction: false,
     hasImprovedSymptoms: false,
-    psaAlertTriggered: false, // Para o alerta de câncer de próstata
+    psaAlertTriggered: false,
   })
 
-  // Initialize offline storage
+  // Initialize offline storage and network status
   useEffect(() => {
+    // Initialize storage
     offlineStorage.init().catch(console.error)
+
+    // Network status
+    const updateOnlineStatus = () => {
+      setIsOnline(navigator.onLine)
+    }
+
+    // Listen for online/offline events
+    window.addEventListener("online", updateOnlineStatus)
+    window.addEventListener("offline", updateOnlineStatus)
+
+    // Initial status
+    updateOnlineStatus()
+
+    // Register for background sync when coming back online
+    if ("serviceWorker" in navigator && "sync" in window.ServiceWorkerRegistration.prototype) {
+      navigator.serviceWorker.ready.then((registration) => {
+        window.addEventListener("online", () => {
+          registration.sync.register("email-report").catch(console.error)
+        })
+      })
+    }
+
+    return () => {
+      window.removeEventListener("online", updateOnlineStatus)
+      window.removeEventListener("offline", updateOnlineStatus)
+    }
   }, [])
 
   const getScreenTitle = useCallback(() => {
@@ -87,25 +115,38 @@ export default function HPBApp() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen min-h-[100dvh] bg-gray-50 select-none">
       {/* Header */}
-      <header className="bg-orange-500 text-white p-4 flex items-center justify-between">
+      <header className="bg-orange-500 text-white p-4 flex items-center justify-between sticky top-0 z-10">
         <button
           onClick={goBack}
-          className="flex items-center p-2 -ml-2"
+          className="flex items-center p-2 -ml-2 touch-manipulation"
           aria-label="Voltar"
           disabled={currentScreen === "welcome" || screenHistory.length === 0}
         >
           <ArrowLeft className="w-6 h-6" />
         </button>
         <h1 className="text-lg font-semibold flex-1 text-center">{getScreenTitle()}</h1>
-        <button className="p-2 -mr-2" aria-label="Compartilhar">
-          <Share className="w-6 h-6" />
-        </button>
+        <div className="flex items-center space-x-2">
+          {/* Indicador de status de rede */}
+          <div className={`p-1 rounded ${isOnline ? "text-white" : "text-red-200"}`}>
+            {isOnline ? <Wifi className="w-5 h-5" /> : <WifiOff className="w-5 h-5" />}
+          </div>
+          <button className="p-2 -mr-2 touch-manipulation" aria-label="Compartilhar">
+            <Share className="w-6 h-6" />
+          </button>
+        </div>
       </header>
 
+      {/* Offline indicator */}
+      {!isOnline && (
+        <div className="bg-yellow-500 text-white text-center py-2 text-sm font-medium">
+          📱 Modo Offline - Dados serão sincronizados quando voltar online
+        </div>
+      )}
+
       {/* Screen Content */}
-      <main className="flex-1">
+      <main className="flex-1 pb-safe">
         {currentScreen === "welcome" && (
           <WelcomeScreen
             onStartDiagnostic={() => navigateTo("surgery-indications")}
@@ -123,9 +164,9 @@ export default function HPBApp() {
                 surgeryAnswers: answers,
               })
               if (hasIndication) {
-                navigateTo("guidance") // Encaminhar direto se houver indicação cirúrgica
+                navigateTo("guidance")
               } else {
-                navigateTo("ipss") // Vai direto para IPSS se não houver indicação
+                navigateTo("ipss")
               }
             }}
           />
@@ -135,7 +176,7 @@ export default function HPBApp() {
           <IpssScreen
             patientData={patientData}
             onUpdatePatientData={updatePatientData}
-            onComplete={() => navigateTo("exams")} // Após IPSS vai para Exames
+            onComplete={() => navigateTo("exams")}
           />
         )}
 
@@ -144,7 +185,6 @@ export default function HPBApp() {
             patientData={patientData}
             onUpdatePatientData={updatePatientData}
             onComplete={() => {
-              // Lógica do alerta de câncer de próstata do fluxograma 2
               const age = Number(patientData.age)
               const psa = Number(patientData.psa)
               const psaAlert = (age < 60 && psa > 2.5) || (age >= 60 && psa > 4.0)
@@ -152,7 +192,7 @@ export default function HPBApp() {
               if (psaAlert) {
                 updatePatientData({ psaAlertTriggered: true })
               }
-              navigateTo("guidance") // Sempre vai para guidance após exames
+              navigateTo("guidance")
             }}
           />
         )}
@@ -160,7 +200,7 @@ export default function HPBApp() {
         {currentScreen === "guidance" && (
           <GuidanceScreen
             patientData={patientData}
-            onFinish={() => navigateTo("email-report")} // Vai para tela de e-mail em vez de resetar
+            onFinish={() => navigateTo("email-report")}
             onUpdatePatientData={updatePatientData}
           />
         )}
