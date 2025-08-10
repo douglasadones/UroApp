@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { ArrowLeft, Share } from "lucide-react"
 import WelcomeScreen from "@/components/welcome-screen"
 import MissingExamsScreen from "@/components/missing-exams-screen"
@@ -8,6 +8,8 @@ import SurgeryIndicationsScreen from "@/components/surgery-indications-screen"
 import ExamsScreen from "@/components/exams-screen"
 import IpssScreen from "@/components/ipss-screen"
 import GuidanceScreen from "@/components/guidance-screen"
+import EmailReportScreen from "@/components/email-report-screen"
+import { offlineStorage } from "@/lib/storage"
 
 export default function HPBApp() {
   const [currentScreen, setCurrentScreen] = useState("welcome")
@@ -18,11 +20,17 @@ export default function HPBApp() {
     psa: "",
     prostateVolume: "",
     ipssAnswers: {},
+    surgeryAnswers: [], // Para armazenar as respostas das indicações de cirurgia
     hasSurgeryIndication: null, // true/false/null
     hasErectileDysfunction: false,
     hasImprovedSymptoms: false,
     psaAlertTriggered: false, // Para o alerta de câncer de próstata
   })
+
+  // Initialize offline storage
+  useEffect(() => {
+    offlineStorage.init().catch(console.error)
+  }, [])
 
   const getScreenTitle = useCallback(() => {
     const titles = {
@@ -32,6 +40,7 @@ export default function HPBApp() {
       exams: "Exames",
       ipss: "IPSS",
       guidance: "Orientação",
+      "email-report": "Enviar Relatório",
     }
     return titles[currentScreen] || "HPB Assistant"
   }, [currentScreen])
@@ -67,6 +76,7 @@ export default function HPBApp() {
       psa: "",
       prostateVolume: "",
       ipssAnswers: {},
+      surgeryAnswers: [],
       hasSurgeryIndication: null,
       hasErectileDysfunction: false,
       hasImprovedSymptoms: false,
@@ -107,8 +117,11 @@ export default function HPBApp() {
 
         {currentScreen === "surgery-indications" && (
           <SurgeryIndicationsScreen
-            onComplete={(hasIndication) => {
-              updatePatientData({ hasSurgeryIndication: hasIndication })
+            onComplete={(hasIndication, answers) => {
+              updatePatientData({
+                hasSurgeryIndication: hasIndication,
+                surgeryAnswers: answers,
+              })
               if (hasIndication) {
                 navigateTo("guidance") // Encaminhar direto se houver indicação cirúrgica
               } else {
@@ -147,9 +160,13 @@ export default function HPBApp() {
         {currentScreen === "guidance" && (
           <GuidanceScreen
             patientData={patientData}
-            onFinish={resetPatientData}
+            onFinish={() => navigateTo("email-report")} // Vai para tela de e-mail em vez de resetar
             onUpdatePatientData={updatePatientData}
           />
+        )}
+
+        {currentScreen === "email-report" && (
+          <EmailReportScreen patientData={patientData} onFinish={resetPatientData} />
         )}
       </main>
     </div>

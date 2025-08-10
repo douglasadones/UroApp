@@ -4,7 +4,7 @@ import { useState } from "react"
 import { CheckCircle, ArrowLeft, Info } from "lucide-react"
 
 interface SurgeryIndicationsScreenProps {
-  onComplete: (hasIndication: boolean) => void
+  onComplete: (hasIndication: boolean, answers: Array<{ question: string; answer: boolean }>) => void
 }
 
 const surgeryIndications = [
@@ -43,9 +43,17 @@ export default function SurgeryIndicationsScreen({ onComplete }: SurgeryIndicati
     newAnswers[currentQuestion] = answer
     setAnswers(newAnswers)
 
+    // Criar array de respostas para o relatório
+    const answersForReport = newAnswers
+      .map((ans, index) => ({
+        question: surgeryIndications[index].question,
+        answer: ans,
+      }))
+      .filter((item) => item.answer !== null)
+
     // Se respondeu SIM para qualquer indicação, encaminhar imediatamente
     if (answer) {
-      onComplete(true)
+      onComplete(true, answersForReport)
       return
     }
 
@@ -56,7 +64,7 @@ export default function SurgeryIndicationsScreen({ onComplete }: SurgeryIndicati
       }, 300)
     } else {
       // Se chegou ao final e todas as respostas foram NÃO
-      onComplete(false)
+      onComplete(false, answersForReport)
     }
   }
 
